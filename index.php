@@ -212,9 +212,16 @@ add_filter( 'the_content', 'build_site_clone_button' );
 function clone_button_maker(){
     global $post;
     $url = acf_fetch_site_url($post->ID);
-    $parsed = parse_url($url);
-    $site_id = get_blog_id_from_url($parsed['host']);   
-    return '<a class="dup-button" href="..clone-zone?cloner=' . $site_id . '#field_1_2">Clone it to own it!</a>';
+    $main = parse_url($url);
+    $arg = array(
+        'domain' => $main['host'],
+        'path' => $main['path']
+    );
+    $blog_details = get_blog_details($arg);
+
+    $site_id = $blog_details->blog_id;   
+    //get_blog_id_from_url("example.com", "/blog1/");
+    return '<a class="dup-button" href="' . get_site_url() . '/clone-zone?cloner=' . $site_id . '#field_1_2">Clone it to own it!</a>';
 }
 
 
@@ -257,4 +264,21 @@ function my_acf_json_save_point( $path ) {
     // return
     return $path;
     
+}
+
+
+function create_clone_zone_page(){
+    $exists =   get_page_by_title( 'clone-zone' );
+    if(!$exists){
+        $my_post = array(
+          'post_title'    => 'clone-zone',
+          'post_content'  => '',
+          'post_status'   => 'publish',
+          'post_author'   => 1,
+          'post_category' => array( 8,39 )
+        );
+         
+        // Insert the post into the database
+        wp_insert_post( $my_post );
+    }
 }
