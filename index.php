@@ -29,21 +29,17 @@ add_action( 'gform_after_submission_12', 'gform_site_cloner', 10, 2 );//specific
 
 function gform_site_cloner($entry, $form){
     /**
- * Before doing anything: set up clone request data.
- * These are the same fields that get submitted via an AJAX request when cloning
- * via the admin interface, so you can inspect that request to determine other
- * ways to configure the parameters, particularly if you're using NS Cloner Pro
- * and have more options available.
+ FROM https://neversettle.it/documentation/ns-cloner/call-ns-cloner-copy-sites-plugins/
  **/
  $request = array(
       'clone_mode'     => 'core',
       'source_id'      => rgar( $entry, '1' ), // any blog/site id on network
       'target_name'    => rgar( $entry, '3' ),
       'target_title'   => rgar( $entry, '2' ),
-      'debug'          => 1 // optional: enables logs
+      //'debug'          => 1 // optional: enables logs
   );
- // Method 1: immediate.
-// ###################
+
+
 
 // Register request with the cloner.
 foreach ( $request as $key => $value ) {
@@ -64,19 +60,19 @@ if ( ! empty( $errors ) ) {
 
 // Last you'll need to poll for completion to run the cleanup process
 // when content is done cloning. Could be via AJAX to avoid timeout, or like:
-do {
-   // Attempt to run finish, if content is complete.
-   $pm->maybe_finish();
-   $progress = $pm->get_progress();
-   // Pause, so we're not constantly hammering the server with progress checks.
-   sleep( 3 );
-} while ( 'reported' !== $progress['status'] );
+// do {
+//    // Attempt to run finish, if content is complete.
+//    $pm->maybe_finish();
+//    $progress = $pm->get_progress();
+//    // Pause, so we're not constantly hammering the server with progress checks.
+//    sleep( 3 );
+// } while ( 'reported' !== $progress['status'] );
 
 // Once you've verified that $progress['status'] is 'reported',
 // you can get access the array of report data (whether successful or failed) via:
-$reports = ns_cloner()->report->get_all_reports();
+//$reports = ns_cloner()->report->get_all_reports();
 
- 
+
 }
 
 //add created sites to cloner posts
@@ -90,9 +86,6 @@ function gform_new_site_to_acf($entry, $form){
      $posts = get_posts( 'numberposts=-1&post_status=publish&post_type=clone' ); 
         foreach ( $posts as $post ) {
             $url = get_field('site_url', $post->ID);
-            //$parsed = parse_url($url);
-            //$clone_id = get_blog_id_from_url($parsed['host']);
-
             $main = parse_url($url);//probably need to add a check for trailing slash
             $arg = array(
                 'domain' => $main['host'],
@@ -100,7 +93,7 @@ function gform_new_site_to_acf($entry, $form){
             );
             $blog_details = get_blog_details($arg);
 
-            $clone_id = $blog_details->blog_id;   
+            $clone_id = (int)$blog_details->blog_id;  
 
             if ($clone_id === $clone_form_id){
                 $post_id = $post->ID;
