@@ -25,7 +25,7 @@ function opened_duplicator_scripts() {
     wp_enqueue_style( 'altlab-dup-main-css', plugin_dir_url( __FILE__) . 'css/altlab-dup-main.css');
 }
 
-add_action( 'gform_after_submission_1', 'gform_site_cloner', 10, 2 );//specific to the gravity form id
+add_action( 'gform_after_submission_12', 'gform_site_cloner', 10, 2 );//specific to the gravity form id
 
 function gform_site_cloner($entry, $form){
     $_POST =  [
@@ -50,7 +50,7 @@ function gform_site_cloner($entry, $form){
 }
 
 //add created sites to cloner posts
-add_action( 'gform_after_submission_1', 'gform_new_site_to_acf', 10, 2 );//specific to the gravity form id
+add_action( 'gform_after_submission_12', 'gform_new_site_to_acf', 10, 2 );//specific to the gravity form id
 
 function gform_new_site_to_acf($entry, $form){
     $form_title = rgar( $entry, '2' );
@@ -60,8 +60,18 @@ function gform_new_site_to_acf($entry, $form){
      $posts = get_posts( 'numberposts=-1&post_status=publish&post_type=clone' ); 
         foreach ( $posts as $post ) {
             $url = get_field('site_url', $post->ID);
-            $parsed = parse_url($url);
-            $clone_id = get_blog_id_from_url($parsed['host']);
+            //$parsed = parse_url($url);
+            //$clone_id = get_blog_id_from_url($parsed['host']);
+
+            $main = parse_url($url);//probably need to add a check for trailing slash
+            $arg = array(
+                'domain' => $main['host'],
+                'path' => $main['path']
+            );
+            $blog_details = get_blog_details($arg);
+
+            $clone_id = $blog_details->blog_id;   
+
             if ($clone_id === $clone_form_id){
                 $post_id = $post->ID;
             }
@@ -69,7 +79,7 @@ function gform_new_site_to_acf($entry, $form){
 
     $row = array(
         'name'   => $form_title,
-        'url'  => 'https://' .$form_url . '.opened.ca',
+        'url'  => 'https://rampages.us/' .$form_url,
         'description' => '',
         'display' => 'False'
     );
@@ -78,10 +88,10 @@ function gform_new_site_to_acf($entry, $form){
 }
 
 //GRAVITY FORM PROVISIONING BASED ON CLONE POSTS
-add_filter( 'gform_pre_render_1', 'populate_posts' );
-add_filter( 'gform_pre_validation_1', 'populate_posts' );
-add_filter( 'gform_pre_submission_filter_1', 'populate_posts' );
-add_filter( 'gform_admin_pre_render_1', 'populate_posts' );
+add_filter( 'gform_pre_render_12', 'populate_posts' );
+add_filter( 'gform_pre_validation_12', 'populate_posts' );
+add_filter( 'gform_pre_submission_filter_12', 'populate_posts' );
+add_filter( 'gform_admin_pre_render_12', 'populate_posts' );
 function populate_posts( $form ) {
  
     foreach ( $form['fields'] as &$field ) {
@@ -98,8 +108,18 @@ function populate_posts( $form ) {
  
         foreach ( $posts as $post ) {
             $url = get_field('site_url', $post->ID);
-            $parsed = parse_url($url);
-            $clone_id = get_blog_id_from_url($parsed['host']);
+            // $parsed = parse_url($url);
+            // $clone_id = get_blog_id_from_url($parsed['host']);
+
+            $main = parse_url($url);//probably need to add a check for trailing slash
+            $arg = array(
+                'domain' => $main['host'],
+                'path' => $main['path']
+            );
+            $blog_details = get_blog_details($arg);
+
+            $clone_id = $blog_details->blog_id;   
+
             $choices[] = array( 'text' => $post->post_title, 'value' => $clone_id);
         }
  
@@ -212,7 +232,7 @@ add_filter( 'the_content', 'build_site_clone_button' );
 function clone_button_maker(){
     global $post;
     $url = acf_fetch_site_url($post->ID);
-    $main = parse_url($url);
+    $main = parse_url($url);//probably need to add a check for trailing slash
     $arg = array(
         'domain' => $main['host'],
         'path' => $main['path']
@@ -220,8 +240,7 @@ function clone_button_maker(){
     $blog_details = get_blog_details($arg);
 
     $site_id = $blog_details->blog_id;   
-    //get_blog_id_from_url("example.com", "/blog1/");
-    return '<a class="dup-button" href="' . get_site_url() . '/clone-zone?cloner=' . $site_id . '#field_1_2">Clone it to own it!</a>';
+    return '<a class="dup-button" href="' . get_site_url() . '/clone-zone?cloner=' . $site_id . '#field_12_2">Clone it to own it!</a>';
 }
 
 
