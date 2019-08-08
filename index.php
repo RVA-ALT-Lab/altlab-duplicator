@@ -28,25 +28,55 @@ function opened_duplicator_scripts() {
 add_action( 'gform_after_submission_12', 'gform_site_cloner', 10, 2 );//specific to the gravity form id
 
 function gform_site_cloner($entry, $form){
-    $_POST =  [
-          'action'         => 'process',
-          'clone_mode'     => 'core',
-          'source_id'      => rgar( $entry, '1' ), //specific to the form entry fields and should resolve to the ID site to copy
-          'target_name'    => rgar( $entry, '3' ), //specific to the form entry fields - need to parallel site url restrictions URL/DOMAIN
-          'target_title'   => rgar( $entry, '2' ), //specific to the form entry fields TITLE
-          'disable_addons' => true,
-          'clone_nonce'    => wp_create_nonce('ns_cloner')
-      ];
-    
-    // Setup clone process and run it.
-    $ns_site_cloner = new ns_cloner();
-    $ns_site_cloner->process();
+    /**
+ * Before doing anything: set up clone request data.
+ * These are the same fields that get submitted via an AJAX request when cloning
+ * via the admin interface, so you can inspect that request to determine other
+ * ways to configure the parameters, particularly if you're using NS Cloner Pro
+ * and have more options available.
+ **/
+ $request = array(
+      'clone_mode'     => 'core',
+      'source_id'      => rgar( $entry, '1' ), // any blog/site id on network
+      'target_name'    => rgar( $entry, '3' ),
+      'target_title'   => rgar( $entry, '2' ),
+      'debug'          => 1 // optional: enables logs
+  );
+ // Method 1: immediate.
+// ###################
 
-    $site_id = $ns_site_cloner->target_id;
-    $site_info = get_blog_details( $site_id );
-    if ( $site_info ) {
-     // Clone successful!
-    }
+// Register request with the cloner.
+foreach ( $request as $key => $value ) {
+   ns_cloner_request()->set( $key, $value );
+}
+
+// Get the cloner process object.
+$cloner = ns_cloner()->process_manager;
+
+// Begin cloning.
+$cloner->init();
+
+// Check for errors (from invalid params, or already running process).
+$errors = $cloner->get_errors();
+if ( ! empty( $errors ) ) {
+   // Handle error(s) and exit
+}
+
+// Last you'll need to poll for completion to run the cleanup process
+// when content is done cloning. Could be via AJAX to avoid timeout, or like:
+do {
+   // Attempt to run finish, if content is complete.
+   $pm->maybe_finish();
+   $progress = $pm->get_progress();
+   // Pause, so we're not constantly hammering the server with progress checks.
+   sleep( 3 );
+} while ( 'reported' !== $progress['status'] );
+
+// Once you've verified that $progress['status'] is 'reported',
+// you can get access the array of report data (whether successful or failed) via:
+$reports = ns_cloner()->report->get_all_reports();
+
+ 
 }
 
 //add created sites to cloner posts

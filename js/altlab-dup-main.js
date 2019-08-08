@@ -21,7 +21,7 @@ document.getElementById("input_12_3").addEventListener("input", function(e) {
             return false;
         }
     }
-  document.getElementById('domain-name').innerHTML = input.value + '.opened.ca';
+  document.getElementById('domain-name').innerHTML = 'rampages.us/' + input.value;
    textSuccess();
 });
 
@@ -30,7 +30,7 @@ function createUrlDiv(){
  let domain = document.createElement("div");
   fieldId.appendChild(domain);
    domain.setAttribute("id", "domain-name");
-   domain.innerHTML = 'YOURNAME.opened.ca';
+   domain.innerHTML = 'rampages.us/YOUR_DOMAIN_NAME';
 }
 createUrlDiv();
 
