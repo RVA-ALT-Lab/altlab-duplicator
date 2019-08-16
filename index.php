@@ -17,6 +17,8 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 add_action('wp_enqueue_scripts', 'opened_duplicator_scripts');
 
+$form_id = RGFormsModel::get_form_id('duplicate site');
+
 function opened_duplicator_scripts() {                           
     $deps = array('jquery');
     $version= '1.0'; 
@@ -25,7 +27,7 @@ function opened_duplicator_scripts() {
     wp_enqueue_style( 'altlab-dup-main-css', plugin_dir_url( __FILE__) . 'css/altlab-dup-main.css');
 }
 
-add_action( 'gform_after_submission_12', 'gform_site_cloner', 10, 2 );//specific to the gravity form id
+add_action( 'gform_after_submission_' . $form_id, 'gform_site_cloner', 10, 2 );//specific to the gravity form id
 
 function gform_site_cloner($entry, $form){
     /**
@@ -54,29 +56,16 @@ $cloner->init();
 
 // Check for errors (from invalid params, or already running process).
 $errors = $cloner->get_errors();
-if ( ! empty( $errors ) ) {
-   // Handle error(s) and exit
-}
-
-// Last you'll need to poll for completion to run the cleanup process
-// when content is done cloning. Could be via AJAX to avoid timeout, or like:
-// do {
-//    // Attempt to run finish, if content is complete.
-//    $pm->maybe_finish();
-//    $progress = $pm->get_progress();
-//    // Pause, so we're not constantly hammering the server with progress checks.
-//    sleep( 3 );
-// } while ( 'reported' !== $progress['status'] );
-
-// Once you've verified that $progress['status'] is 'reported',
-// you can get access the array of report data (whether successful or failed) via:
-//$reports = ns_cloner()->report->get_all_reports();
-
+    if ( ! empty( $errors ) ) {
+       // Handle error(s) and exit
+    }
 
 }
 
 //add created sites to cloner posts
-add_action( 'gform_after_submission_12', 'gform_new_site_to_acf', 10, 2 );//specific to the gravity form id
+
+
+add_action( 'gform_after_submission_' . $form_id, 'gform_new_site_to_acf', 10, 2 );//specific to the gravity form id
 
 function gform_new_site_to_acf($entry, $form){
     $form_title = rgar( $entry, '2' );
@@ -111,10 +100,10 @@ function gform_new_site_to_acf($entry, $form){
 }
 
 //GRAVITY FORM PROVISIONING BASED ON CLONE POSTS
-add_filter( 'gform_pre_render_12', 'populate_posts' );
-add_filter( 'gform_pre_validation_12', 'populate_posts' );
-add_filter( 'gform_pre_submission_filter_12', 'populate_posts' );
-add_filter( 'gform_admin_pre_render_12', 'populate_posts' );
+add_filter( 'gform_pre_render_'.$form_id, 'populate_posts' );
+add_filter( 'gform_pre_validation_'.$form_id, 'populate_posts' );
+add_filter( 'gform_pre_submission_filter_'.$form_id, 'populate_posts' );
+add_filter( 'gform_admin_pre_render_'.$form_id, 'populate_posts' );
 function populate_posts( $form ) {
  
     foreach ( $form['fields'] as &$field ) {
@@ -252,7 +241,7 @@ function build_site_clone_button($content){
 add_filter( 'the_content', 'build_site_clone_button' );
 
 //builds clone button link
-function clone_button_maker(){
+function clone_button_maker($form_id){
     global $post;
     $url = acf_fetch_site_url($post->ID);
     $main = parse_url($url);//probably need to add a check for trailing slash
@@ -263,7 +252,7 @@ function clone_button_maker(){
     $blog_details = get_blog_details($arg);
 
     $site_id = $blog_details->blog_id;   
-    return '<a class="dup-button" href="' . get_site_url() . '/clone-zone?cloner=' . $site_id . '#field_12_2">Clone it to own it!</a>';
+    return '<a class="dup-button" href="' . get_site_url() . '/clone-zone?cloner=' . $site_id . '#field_'. $form_id .'_2">Clone it to own it!</a>';
 }
 
 
