@@ -241,8 +241,9 @@ function build_site_clone_button($content){
 add_filter( 'the_content', 'build_site_clone_button' );
 
 //builds clone button link
-function clone_button_maker($form_id){
+function clone_button_maker(){
     global $post;
+    $form_id = RGFormsModel::get_form_id('duplicate site');
     $url = acf_fetch_site_url($post->ID);
     $main = parse_url($url);//probably need to add a check for trailing slash
     $arg = array(
