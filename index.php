@@ -284,20 +284,6 @@ function clone_finder(){
 }
 
 
-//save ACF data
-add_filter('acf/settings/save_json', 'my_acf_json_save_point');
- 
-function my_acf_json_save_point( $path ) {
-    
-    // update path
-    $path = plugin_dir_path( __FILE__) . '/import-data';
-    
-    
-    // return
-    return $path;
-    
-}
-
 
 function create_clone_zone_page(){
     $exists =   get_page_by_title( 'clone-zone' );
@@ -307,10 +293,59 @@ function create_clone_zone_page(){
           'post_content'  => '',
           'post_status'   => 'publish',
           'post_author'   => 1,
-          'post_category' => array( 8,39 )
+          //'post_category' => array( 8,39 )
         );
          
         // Insert the post into the database
         wp_insert_post( $my_post );
     }
 }
+
+//********ACF SPECIFIC****************//
+
+//CREATE OPTIONS PAGE
+if( function_exists('acf_add_options_page') ) {
+    
+    acf_add_options_page(array(
+        'page_title'    => 'Clone Zone Settings',
+        'menu_title'    => 'Cloner Settings',
+        'menu_slug'     => 'clone-zone-settings',
+        'capability'    => 'edit_posts',
+        'redirect'      => false
+    ));
+    
+}
+
+
+    //save acf json
+        add_filter('acf/settings/save_json', 'clone_zone_json_save_point');
+         
+        function clone_zone_json_save_point( $path ) {
+            
+            // update path
+            $path = plugin_dir_url(__FILE__) . '/acf-json'; //replace w get_stylesheet_directory() for theme
+            
+            
+            // return
+            return $path;
+            
+        }
+
+
+        // load acf json
+        add_filter('acf/settings/load_json', 'clone_zone_json_load_point');
+
+        function clone_zone_json_load_point( $paths ) {
+            
+            // remove original path (optional)
+            unset($paths[0]);
+            
+            
+            // append path
+            $paths[] = plugin_dir_url(__FILE__)  . '/acf-json';//replace w get_stylesheet_directory() for theme
+            
+            
+            // return
+            return $paths;
+            
+        }
