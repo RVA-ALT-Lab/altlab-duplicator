@@ -30,9 +30,8 @@ function opened_duplicator_scripts() {
 add_action( 'gform_after_submission_' . $form_id, 'gform_site_cloner', 10, 2 );//specific to the gravity form id
 
 function gform_site_cloner($entry, $form){
-    /**
- FROM https://neversettle.it/documentation/ns-cloner/call-ns-cloner-copy-sites-plugins/
- **/
+    //**FROM https://neversettle.it/documentation/ns-cloner/call-ns-cloner-copy-sites-plugins **//
+
  $request = array(
       'clone_mode'     => 'core',
       'source_id'      => rgar( $entry, '1' ), // any blog/site id on network
@@ -43,22 +42,15 @@ function gform_site_cloner($entry, $form){
 
 
 
-// Register request with the cloner.
-foreach ( $request as $key => $value ) {
-   ns_cloner_request()->set( $key, $value );
-}
+    // Method 2: scheduled.
+    // ####################
+    ns_cloner()->schedule->add(
+       $request,          // array of request data as specified above
+       time(),            // timestamp of date/time to start cloning - use time() to run immediately
+       'Open Duplicator' // name of your project, required but used only for debugging
+    );
 
-// Get the cloner process object.
-$cloner = ns_cloner()->process_manager;
 
-// Begin cloning.
-$cloner->init();
-
-// Check for errors (from invalid params, or already running process).
-$errors = $cloner->get_errors();
-    if ( ! empty( $errors ) ) {
-       // Handle error(s) and exit
-    }
 
 }
 
@@ -91,7 +83,7 @@ function gform_new_site_to_acf($entry, $form){
 
     $row = array(
         'name'   => $form_title,
-        'url'  => 'https://rampages.us/' .$form_url,
+        'url'  => 'https://rampages.us/' . $form_url,
         'description' => '',
         'display' => 'False'
     );
@@ -253,7 +245,11 @@ function clone_button_maker(){
     $blog_details = get_blog_details($arg);
 
     $site_id = $blog_details->blog_id;   
-    return '<a class="dup-button" href="' . get_site_url() . '/clone-zone?cloner=' . $site_id . '#field_'. $form_id .'_2">Clone it to own it!</a>';
+
+    $clone_page = get_field('cloner_page', 'option');
+    $clone_page_slug = $clone_page->post_name;
+    var_dump($clone_page_slug);
+    return '<a class="dup-button" href="' . get_site_url() . '/' . $clone_page_slug . '?cloner=' . $site_id . '#field_'. $form_id .'_2">Clone it to own it!</a>';
 }
 
 
