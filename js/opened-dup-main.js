@@ -1,8 +1,11 @@
+createUrlDiv();
+
+
 //from https://stackoverflow.com/questions/44933411/allow-only-letters-numbers-and-hyphen-in-input 
-document.getElementById("input_5_3").addEventListener("input", function(e) {
+document.getElementById("input_1_3").addEventListener("input", function(e) {
     // Get all inputs in the form we specifically are looking at, this selector can be
     // changed if this is supposed to be applied to specific inputs
-    var inputs = document.querySelectorAll('#input_5_3');
+    var inputs = document.querySelectorAll('#input_1_3');
     var forbiddenChars = /[^a-z\d\-]/ig;
     
     // check all the inputs we selected
@@ -21,20 +24,19 @@ document.getElementById("input_5_3").addEventListener("input", function(e) {
             return false;
         }
     }
-  document.getElementById('domain-name').innerHTML = 'rampages.us/' + input.value;
+  document.getElementById('domain-name').innerHTML =  input.value + '.opened.ca';
    textSuccess();
 });
 
 function createUrlDiv(){
- let fieldId = document.getElementById('field_12_3');
+ let fieldId = document.getElementById('field_1_3');
  let domain = document.createElement("div");
   fieldId.appendChild(domain);
    domain.setAttribute("id", "domain-name");
    domain.innerHTML = 'YOUR_DOMAIN_NAME.opened.ca';
 }
-createUrlDiv();
 
-document.getElementById("input_12_3").addEventListener("blur", textSuccess);
+document.getElementById("input_1_3").addEventListener("blur", textSuccess);
 function textSuccess(){
   let domainName = document.getElementById('domain-name');
   if (domainName.className === "success"){
