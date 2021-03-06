@@ -30,7 +30,7 @@ function createUrlDiv(){
  let domain = document.createElement("div");
   fieldId.appendChild(domain);
    domain.setAttribute("id", "domain-name");
-   domain.innerHTML = 'rampages.us/YOUR_DOMAIN_NAME';
+   domain.innerHTML = 'YOUR_DOMAIN_NAME.opened.ca';
 }
 createUrlDiv();
 

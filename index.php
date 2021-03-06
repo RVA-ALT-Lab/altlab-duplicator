@@ -1,15 +1,15 @@
 <?php 
 /*
-Plugin Name: ALT Lab Duplicator
+Plugin Name: OpenEd.ca Duplicator
 Plugin URI:  https://github.com/
 Description: Let's clone sites via gravity form & NS Cloner
-Version:     1.0
+Version:     2.0
 Author:      Tom Woodward
-Author URI:  http://altlab.vcu.edu
+Author URI:  http://opened.ca
 License:     GPL2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Domain Path: /languages
-Text Domain: altlab-duplicator
+Text Domain: opened-duplicator
 
 */
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
@@ -23,10 +23,17 @@ function opened_duplicator_scripts() {
     $deps = array('jquery');
     $version= '1.0'; 
     $in_footer = true;    
-    wp_enqueue_script('altlab-dup-main-js', plugin_dir_url( __FILE__) . 'js/altlab-dup-main.js', $deps, $version, $in_footer); 
-    wp_enqueue_style( 'altlab-dup-main-css', plugin_dir_url( __FILE__) . 'css/altlab-dup-main.css');
+    wp_enqueue_script('opened-dup-main-js', plugin_dir_url( __FILE__) . 'js/opened-dup-main.js', $deps, $version, $in_footer); 
+    wp_enqueue_style( 'opened-dup-main-css', plugin_dir_url( __FILE__) . 'css/opened-dup-main.css');
 }
 
+//LOAD THE OTHER PAGES
+include_once( plugin_dir_path( __FILE__ ) . 'examples.php' );//build the examples on the clone post type
+
+
+
+
+//DOES THE DUPLICATION
 add_action( 'gform_after_submission_' . $form_id, 'gform_site_cloner', 10, 2 );//specific to the gravity form id
 
 function gform_site_cloner($entry, $form){
@@ -37,26 +44,66 @@ function gform_site_cloner($entry, $form){
       'source_id'      => rgar( $entry, '1' ), // any blog/site id on network
       'target_name'    => rgar( $entry, '3' ),
       'target_title'   => rgar( $entry, '2' ),
+      'do_copy_posts' =>  '1',
+      'post_types_to_clone' => 'page',
+      'post_types_to_clone' => 'post',
       //'debug'          => 1 // optional: enables logs
   );
 
 
 
-    // Method 2: scheduled.
-    // ####################
-    ns_cloner()->schedule->add(
-       $request,          // array of request data as specified above
-       time(),            // timestamp of date/time to start cloning - use time() to run immediately
-       'Open Duplicator' // name of your project, required but used only for debugging
-    );
+    // Method 1: immediate.
+    // ###################
 
+    // Register request with the cloner.
+    foreach ( $request as $key => $value ) {
+       ns_cloner_request()->set( $key, $value );
+    }
 
+    // Get the cloner process object.
+    $cloner = ns_cloner()->process_manager;
+
+    // Begin cloning.
+    $cloner->init();
+
+    // Check for errors (from invalid params, or already running process).
+    $errors = $cloner->get_errors();
+    if ( ! empty( $errors ) ) {
+       // Handle error(s) and exit
+    }
+
+    // Last you'll need to poll for completion to run the cleanup process
+    // when content is done cloning. Could be via AJAX to avoid timeout, or like:
+    do {
+       // Attempt to run finish, if content is complete.
+       $cloner->maybe_finish();
+       $progress = $cloner->get_progress();
+       // Pause, so we're not constantly hammering the server with progress checks.
+       sleep( 3 );
+    } while ( 'reported' !== $progress['status'] );
+
+    // Once you've verified that $progress['status'] is 'reported',
+    // you can get access the array of report data (whether successful or failed) via:
+    $reports = ns_cloner()->report->get_all_reports();
+
+    //add acf examples page items
+
+    //REDIRECT TO THE CREATED SITE
+    opened_cloner_redirect(rgar( $entry, '3' ));
 
 }
 
+function opened_cloner_redirect($name){
+    $base_url = network_site_url();
+    $protocols = array('http://', 'https://', 'http://www.', 'www.');
+    $url =  str_replace($protocols, '', $base_url);
+    wp_redirect('https://' .$name . '.' . $url . 'wp-admin' ); 
+    exit;
+}
+
+
+
 //add created sites to cloner posts
-
-
 add_action( 'gform_after_submission_' . $form_id, 'gform_new_site_to_acf', 10, 2 );//specific to the gravity form id
 
 function gform_new_site_to_acf($entry, $form){
@@ -80,10 +127,12 @@ function gform_new_site_to_acf($entry, $form){
                 $post_id = $post->ID;
             }
         }
+    
+    $base_url = network_site_url();
 
     $row = array(
         'name'   => $form_title,
-        'url'  => 'https://rampages.us/' . $form_url,
+        'url'  =>  $base_url . '/' .$form_url,// need to change if not sub domain
         'description' => '',
         'display' => 'False'
     );
@@ -232,6 +281,7 @@ function build_site_clone_button($content){
 
 add_filter( 'the_content', 'build_site_clone_button' );
 
+
 //builds clone button link
 function clone_button_maker(){
     global $post;
@@ -248,56 +298,16 @@ function clone_button_maker(){
 
     $clone_page = get_field('cloner_page', 'option');
     $clone_page_slug = $clone_page->post_name;
-    var_dump($clone_page_slug);
+    //var_dump($clone_page_slug);
     return '<a class="dup-button" href="' . get_site_url() . '/' . $clone_page_slug . '?cloner=' . $site_id . '#field_'. $form_id .'_2">Clone it to own it!</a>';
 }
 
 
-//builds clone example list
-function clone_finder(){
-    if( have_rows('examples') ):
-    $clone_html = '';
-    $clone_html = '<h2>Example Sites</h2>';
-    // loop through the rows of data
-    while ( have_rows('examples') ) : the_row();
-        // display a sub field value
-        $name = get_sub_field('name');
-        $url = get_sub_field('url');
-        $description = get_sub_field('description');
-        $display = get_sub_field('display');
-        if ($display == "True") {
-            $clone_html .= '<div class="clone-example"><a href="'.$url.'"><h3>' . $name . '</h3></a><div class="clone-description">' . $description . '</div></div>';  
-        }
-
-    endwhile;
-    return $clone_html;
-
-    else :
-
-        // no rows found
-
-    endif;
-}
 
 
 
-function create_clone_zone_page(){
-    $exists =   get_page_by_title( 'clone-zone' );
-    if(!$exists){
-        $my_post = array(
-          'post_title'    => 'clone-zone',
-          'post_content'  => '',
-          'post_status'   => 'publish',
-          'post_author'   => 1,
-          //'post_category' => array( 8,39 )
-        );
-         
-        // Insert the post into the database
-        wp_insert_post( $my_post );
-    }
-}
 
-//********ACF SPECIFIC****************//
+//*********************ACF SPECIFIC****************//
 
 //CREATE OPTIONS PAGE
 if( function_exists('acf_add_options_page') ) {
@@ -313,35 +323,34 @@ if( function_exists('acf_add_options_page') ) {
 }
 
 
-    //save acf json
-        add_filter('acf/settings/save_json', 'clone_zone_json_save_point');
-         
-        function clone_zone_json_save_point( $path ) {
-            
-            // update path
-            $path = plugin_dir_url(__FILE__) . '/acf-json'; //replace w get_stylesheet_directory() for theme
-            
-            
-            // return
-            return $path;
-            
-        }
+
+//ACF JSON SAVER
+//This saves the ACF data to a folder so it can synch if you move it to a new site
+add_filter('acf/settings/save_json', 'my_acf_json_save_point');
+ 
+function my_acf_json_save_point( $path ) {
+    
+    // update path
+    $path = plugin_dir_path( __FILE__ )  . '/acf-json';
+    // return
+    return $path;
+    
+}
 
 
-        // load acf json
-        add_filter('acf/settings/load_json', 'clone_zone_json_load_point');
+add_filter('acf/settings/load_json', 'my_acf_json_load_point');
 
-        function clone_zone_json_load_point( $paths ) {
-            
-            // remove original path (optional)
-            unset($paths[0]);
-            
-            
-            // append path
-            $paths[] = plugin_dir_url(__FILE__)  . '/acf-json';//replace w get_stylesheet_directory() for theme
-            
-            
-            // return
-            return $paths;
-            
-        }
+function my_acf_json_load_point( $paths ) {
+    
+    // remove original path (optional)
+    unset($paths[0]);
+    
+    
+    // append path
+    $paths[] = plugin_dir_path( __FILE__ )  . '/acf-json';
+    
+    
+    // return
+    return $paths;
+    
+}
